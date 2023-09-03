@@ -20,4 +20,4 @@
 5. 查看结果：检测完成后，您可以在工具页面上查看检测结果。结果以表格形式呈现，包括网站的序号、URL、标题和状态。
 
 
-![网站检测工具]([assets/网站检测工具-20230903134934-pu4lj96.png](https://github.com/fxecc/URL-detection/blob/main/%E7%BD%91%E7%AB%99%E6%A3%80%E6%B5%8B%E5%B7%A5%E5%85%B7.png?raw=true)https://github.com/fxecc/URL-detection/blob/main/%E7%BD%91%E7%AB%99%E6%A3%80%E6%B5%8B%E5%B7%A5%E5%85%B7.png?raw=true)
+![网站检测工具]([assets/网站检测工具-20230903134934-pu4lj96.png](https://github.com/fxecc/URL-detection/blob/main/%E7%BD%91%E7%AB%99%E6%A3%80%E6%B5%8B%E5%B7%A5%E5%85%B7.png?raw=true)
