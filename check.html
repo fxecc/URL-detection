@@ -59,77 +59,101 @@
             width: 0;
             transition: width 0.2s ease-in-out;
         }
+
+        /* 限制标题显示长度 */
+        .result-title {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            $('#urlForm').submit(function(e) {
-                e.preventDefault();
-                var urls = $('#urls').val().split('\n');
-                urls = urls.filter(function(url) {
-                    return url.trim() !== '';
+<script>
+    $(document).ready(function() {
+        $('#urlForm').submit(function(e) {
+            e.preventDefault();
+            var urls = $('#urls').val().split('\n').map(url => url.trim()).filter(Boolean);
+
+            if (urls.length === 0) {
+                alert('请输入至少一个URL');
+                return;
+            }
+
+            $('#results tbody').empty(); // 清空结果表格
+
+            var totalUrls = urls.length;
+            var processedUrls = 0;
+            var progressBar = $('.progress-bar-fill');
+            progressBar.width('0%');
+
+            // 限制并发请求为5个
+            var concurrentLimit = 5;
+
+            processUrls(urls, 0);
+
+            function processUrls(urls, currentIndex) {
+                var batchUrls = urls.slice(currentIndex, currentIndex + concurrentLimit);
+
+                var batchPromises = batchUrls.map(function(url, index) {
+                    return new Promise(function(resolve, reject) {
+                        setTimeout(function() {
+                            $.ajax({
+                                type: 'POST',
+                                url: 'check.php',
+                                data: { url: url },
+                                dataType: 'json',
+                                success: function(response) {
+                                    if (response.success) {
+                                        var $result = $('<tr>');
+                                        $result.append('<td>' + (currentIndex + index + 1) + '</td>');
+                                        $result.append('<td><a class="url-link" href="' + response.url + '" target="_blank">' + response.url + '</a></td>');
+                                        
+                                        // 使用 .result-title 类来限制标题长度
+                                        $result.append('<td class="result-title" title="' + response.title + '">' + response.title + '</td>');
+
+                                        $result.append('<td>' + response.status + '</td>');
+                                        $('#results tbody').append($result);
+                                    } else {
+                                        console.log('检测失败: ' + response.error);
+                                    }
+
+                                    processedUrls++;
+                                    var progress = (processedUrls / totalUrls) * 100;
+                                    progressBar.width(progress + '%');
+
+                                    resolve(); // resolve promise after processing
+                                },
+                                error: function(xhr, status, error) {
+                                    console.log('请求失败: ' + error);
+
+                                    processedUrls++;
+                                    var progress = (processedUrls / totalUrls) * 100;
+                                    progressBar.width(progress + '%');
+
+                                    resolve(); // resolve promise after processing
+                                }
+                            });
+                        }, index * 1000); // 添加延迟，每个请求之间间隔1秒
+                    });
                 });
 
-                if (urls.length === 0) {
-                    alert('请输入至少一个URL');
-                    return;
-                }
-
-                $('#results tbody').empty(); // 清空结果表格
-
-                var totalUrls = urls.length;
-                var processedUrls = 0;
-
-                var progressBar = $('.progress-bar-fill');
-                progressBar.width('0%');
-
-                processUrls(urls, 0);
-
-                function processUrls(urls, currentIndex) {
-                    if (currentIndex >= urls.length) {
-                        alert('检测完成');
-                        return;
-                    }
-
-                    var url = urls[currentIndex].trim();
-
-                    $.ajax({
-                        type: 'POST',
-                        url: 'check.php',
-                        data: { url: url },
-                        dataType: 'json',
-                        success: function(response) {
-                            if (response.success) {
-                                var $result = $('<tr>');
-                                $result.append('<td>' + (currentIndex + 1) + '</td>');
-                                $result.append('<td><a class="url-link" href="' + response.url + '" target="_blank">' + response.url + '</a></td>');
-                                $result.append('<td>' + response.title + '</td>');
-                                $result.append('<td>' + response.status + '</td>');
-                                $('#results tbody').append($result);
-                            } else {
-                                console.log('检测失败: ' + response.error);
-                            }
-
-                            processedUrls++;
-                            var progress = (processedUrls / totalUrls) * 100;
-                            progressBar.width(progress + '%');
-
-                            processUrls(urls, currentIndex + 1);
-                        },
-                        error: function(xhr, status, error) {
-                            console.log('请求失败: ' + error);
-
-                            processedUrls++;
-                            var progress = (processedUrls / totalUrls) * 100;
-                            progressBar.width(progress + '%');
-
-                            processUrls(urls, currentIndex + 1);
+                Promise.all(batchPromises)
+                    .then(function() {
+                        if (currentIndex + concurrentLimit < urls.length) {
+                            processUrls(urls, currentIndex + concurrentLimit);
+                        } else {
+                            alert('检测完成');
                         }
+                    })
+                    .catch(function(error) {
+                        console.log('Promise.all Error:', error);
                     });
-                }
-            });
+            }
         });
-    </script>
+    });
+</script>
+
 </head>
 <body>
     <h1>网站检测工具</h1>
